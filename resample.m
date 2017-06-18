@@ -1,9 +1,18 @@
 function [out, out_idx] = resample(sig, Fs_from, Fs_to)
 
-out_step = Fs_to / Fs_from ;
+out_step = Fs_from / Fs_to ;
 filt_step = min( out_step, 1.0 );
 out_t_begin = 0 ; % Increments by out_step.
 out_t = out_t_begin ; % Increments by out_step.
+
+snc_interp = 128;
+snc_steps = 512;
+snc = sinc(0:1/snc_interp:snc_steps-1/snc_interp);
+w = kaiser(length(snc)*2, 2.0);
+snc = snc' .* w(length(w)/2+1:end) ;
+fprintf( 'Gain: %f\n', sum( snc ) );
+snc = snc / sum( snc );
+
 
 sig_index = 1;
 out_sz = ceil(length(sig)/filt_step);
@@ -17,7 +26,7 @@ for out_i = 1:out_sz
     % t_sinc = t_sample - ceil( t_sample - st_Nwindow + 1/st_Nwindow_interp )
     filt_t = (out_t_begin - out_t) * filt_step;
     for j = 1:length(sig)
-        acc = acc + sinc_good( filt_t ) * sig( j );
+        acc = acc + sinc_good( filt_t, snc, snc_interp ) * sig( j );
         filt_t = filt_t + filt_step ;
     end
     out( out_i ) = acc ;
